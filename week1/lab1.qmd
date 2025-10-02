@@ -251,11 +251,12 @@ fire_recovery <- read_csv(here::here("week1", "Phenology.csv"))
 
 # Clean data 
 fire_recovery_clean <- fire_recovery %>% 
+  rename(Fire = fire_name) %>% 
   filter(fire_phase == "post",
-         fire_name %in% c("rodeo", "lamesa", "blackhawk", "rattlesnake", "potaz"))
+         Fire %in% c("rodeo", "lamesa", "blackhawk", "rattlesnake", "potaz"))
 
 # Bar plot of post fire recovery type
-fire_plot <- ggplot(fire_recovery_clean, aes(regrowth, fill = fire_name)) +
+fire_plot <- ggplot(fire_recovery_clean, aes(regrowth, fill = Fire)) +
   geom_bar() +
   theme_minimal() +
   scale_fill_manual(values = c("#7C6A0A", "#BABD8D", "#FFDAC6", "#FA9500", "#EB6424")) +
@@ -273,7 +274,7 @@ ggsave("fire_plot.png", bg = "white")
 
 This graph was created using a USGS data release from the Western Geographic Science Center titled "Phenology pattern data indicating recovery trajectories of ponderosa pine forests after high-severity fires". The data contained sampled areas of ponderosa pine ecosystems across Arizona and New Mexico that experienced high-severity fire, various NDVI measurements, and their vegetative recovery towards a biome type (grassland, shrubland, deciduous, or back to forest) over time.
 
-The bar plot created shows the number of observations in each category of regrowth type over the entire study for five selected high-severity fires. Recovery back to a forest was the most common recorded observation in the post-fire years, with recovery towards a grassland coming second- however, the number of years of observation and number of samples taken varied among fires.
+The bar plot created shows the number of observations in each category of regrowth type over the entire study for five selected high-severity fires. Recovery back to a forest was the most common recorded observation in the post-fire years, with recovery towards a grassland coming second. In this data set, the year of the fire and therefore number of samples taken post-fire varied.
 
 Citation: Walker, J.J., and Soulard, C.E., 2019, Phenology pattern data indicating recovery trajectories of ponderosa pine forests after high-severity fires, U.S. Geological Survey data release, https://doi.org/10.5066/P9Y1Z03F.
 
