@@ -243,7 +243,33 @@ Find a dataset containing multiple categorical and continuous variables. You'll 
 3.  Histogram
 4.  Scatterplot
 
-EOD friday- table, discussion of where data came from, interpretation
+```{r}
+library(tidyverse)
+
+# Import data
+fire_recovery <- read_csv(here::here("week1", "Phenology.csv"))
+
+# Clean data 
+fire_recovery_clean <- fire_recovery %>% 
+  filter(fire_phase == "post",
+         fire_name %in% c("rodeo", "lamesa", "blackhawk", "rattlesnake"))
+
+# Bar plot of post fire recovery type
+fire_plot <- ggplot(fire_recovery_clean, aes(regrowth, fill = fire_name)) +
+  geom_bar() +
+  theme_minimal() +
+  scale_fill_manual(values = c("#C08497", "#F7AF9D", "#F7E3AF", "#E5EEC3")) +
+  labs(x = "Regrowth type",
+       y = "Count",
+       title = "Regrowth Observations of Ponderosa Pine Forests Post-Fire",
+       subtitle = "1984-2017") 
+
+fire_plot
+
+# Export image
+ggsave("fire_plot.png", bg = "white")
+
+```
 
 ## Finished?
 
