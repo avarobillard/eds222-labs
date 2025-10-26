@@ -76,7 +76,7 @@ We want to know if the popsicle stick method works better for restoration than g
 
 **Q1: What is the appropriate test statistic for this question?**
 
-Difference in proportions- between sucess/total in garden staple vs popsicle stick method
+Difference in proportions- between success/total in garden staple vs popsicle stick method
 
 ### State your null and alternative hypotheses
 
@@ -92,7 +92,7 @@ HA: The popsicle stick method works better than the garden staple method for res
 
 ```{r}
 #| label: q3
-# Group by treatment, create column for proportion (count of successes (coded as 1) over total number of treatments)
+# Group by treatment, create column for proportion (count of successes (coded as 1) over total number of treatments), can also do mean(success)
 restoration_summary <- restoration %>% 
   group_by(treatment) %>% 
   summarize(prop_success = sum(success) / n())
@@ -163,9 +163,10 @@ null_distribution <- map_dbl(1:1000, permute)
 ```{r}
 #| label: q7
 # Histogram of null distribution and obs test stat
-null_hist <- ggplot() +
-  geom_histogram(aes(null_distribution)) +
-  geom_vline(xintercept = prop_dif, color = "red")
+null_distribution_df <- tibble(null_distribution)
+null_hist <- ggplot(null_distribution_df, aes(null_distribution)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_vline(xintercept = prop_dif, color = "firebrick", linewidth = 1.5)
 
 null_hist
 
@@ -181,8 +182,8 @@ The p-value is *the probability of a test statistic [at least]{.underline} as ex
 #| label: q8
 #| eval: false
 
-# Calculate proportion of where the null distribution value is greater than the obs test stat
-p_val <- sum(null_distribution >= prop_dif)/1000
+# Calculate proportion of where the null distribution value is greater than the obs test stat via mean of true/false values
+p_val <- mean(null_distribution > prop_dif)
 
 p_val
 
@@ -197,7 +198,8 @@ When interpreting the p-value, we compare it to a *critical threshold*, usually 
 -   Our evidence is consistent with the hypothesis that restoration method does not influence restoration outcome
 
 -   We cannot reject the hypothesis that restoration method does not influence restoration outcome
-Because the p-value was not below 0.05, we cannot reject the hypothesis that restoration method does not influence restoration outcome. Our observed test statistic is not more extreme than the critical threshold. 
+
+Because the p-value was not below 0.05, we fail to reject the hypothesis that restoration method does not influence restoration outcome. Our observed test statistic is not more extreme than the critical threshold. 
 
 ## Bootstrap confidence interval
 
@@ -227,7 +229,7 @@ This is the key part of bootstrapping! Remember, our goal is to estimate the var
 
 one_bootstrap <- restoration %>% 
   group_by(treatment) %>% 
-  mutate(boot_sample = sample(success,
+  mutate(success = sample(success,
                       size = length(success),
                       replace = TRUE)) %>% 
   ungroup()
@@ -246,11 +248,11 @@ one_bootstrap <- restoration %>%
 
 bootstrap <- function(i) {
   one_bootstrap <- restoration %>% 
-  group_by(treatment) %>% 
-  mutate(boot_sample = sample(success,
+    group_by(treatment) %>% 
+    mutate(success = sample(success,
                       size = length(success),
                       replace = TRUE)) %>% 
-  ungroup() %>% 
+    ungroup() %>% 
     mutate(trial = i)
   
 }
@@ -266,9 +268,12 @@ bootstrap_samples <- map(1:1000, bootstrap) %>%
 
 ```{r}
 #| label: q14
-
-
-
+# Group by trial and treatment, calculate success of each treatment within trials
+boot_diff_prop <- bootstrap_samples %>% 
+  group_by(trial, treatment) %>% 
+  summarize(prop_success = mean(success),
+            .groups = "drop_last") %>% # just group by trial now, not treatment
+  summarize(diff_prop = prop_success[2] - prop_success[1]) # subtract each garden prop success from popsicle prop success and make new diff_prop column
 ```
 
 **Q15: Visualize the bootstrapped distribution of the test statistic.**
@@ -276,8 +281,9 @@ bootstrap_samples <- map(1:1000, bootstrap) %>%
 ```{r}
 #| label: q15
 
-
-
+# Histogram of null distribution and obs test stat
+ggplot(boot_diff_prop, aes(diff_prop)) +
+  geom_histogram()
 ```
 
 ### Calculate the confidence interval
@@ -294,9 +300,8 @@ The `quantile()` function finds quantiles. It's vectorized over the parameter `p
 #| label: q16
 #| eval: false
 
-restoration_ci <- ???
+restoration_ci <- quantile(boot_diff_prop$diff_prop, c(0.025, 0.975))
 restoration_ci
-
 ```
 
 **Q17: Update your visual from Q15 to include the observed test statistic with a solid line and the confidence interval represented with dotted lines.**
@@ -304,8 +309,16 @@ restoration_ci
 ```{r}
 #| label: q17
 
-
-
+# Histogram of null distribution, obs test stat, and CI
+ggplot(boot_diff_prop, aes(diff_prop)) +
+  geom_histogram() +
+  geom_vline(xintercept = prop_dif, 
+             color = "firebrick",
+             linewidth = 1.5) +
+  geom_vline(xintercept = restoration_ci, 
+             color = "firebrick",
+             linetype = "dotted",
+             linewidth = 1.5)
 ```
 
 ## Permutation vs bootstrap
@@ -313,7 +326,10 @@ restoration_ci
 The visualization you created for Q7 shows the null distribution of the test statistic. The visualization you created for Q17 shows the bootstrapped distribution of the test statistic.
 
 **Q18: What did you do to make the null distribution center on zero? Specifically, what code?**
+Broke the association between treatment and outcome- sampled treatment without replacement.
 
 **Q19: What did you do to make the bootstrap distribution center on the observed test statistic? Specifically, what code?**
+Retained association between treatment and outcome- grouped by treatment, then sampled with replacement.
 
 **Q20: What would happen to your bootstrap distribution if you sampled without replacement?**
+Sampling without replacement is just shuffling. Since we sampled within treatments, the bootstrap samples would always match the observed sample. So there would be no variation in the bootstrap distribution of the test stat.
