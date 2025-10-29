@@ -199,7 +199,7 @@ When interpreting the p-value, we compare it to a *critical threshold*, usually 
 
 -   We cannot reject the hypothesis that restoration method does not influence restoration outcome
 
-Because the p-value was not below 0.05, we fail to reject the hypothesis that restoration method does not influence restoration outcome. Our observed test statistic is not more extreme than the critical threshold. 
+Because the p-value was not below 0.05, we fail to reject the hypothesis that restoration method does not influence restoration outcome. Our observed test statistic is not more extreme than the critical threshold.
 
 ## Bootstrap confidence interval
 
@@ -214,8 +214,7 @@ Recall the steps for bootstrapping:
 
 ### Identify the test statistic
 
-**Q11: What is the appropriate test statistic for this question?**
-Difference in proportions
+**Q11: What is the appropriate test statistic for this question?** Difference in proportions
 
 ### Draw bootstrap samples
 
@@ -325,11 +324,8 @@ ggplot(boot_diff_prop, aes(diff_prop)) +
 
 The visualization you created for Q7 shows the null distribution of the test statistic. The visualization you created for Q17 shows the bootstrapped distribution of the test statistic.
 
-**Q18: What did you do to make the null distribution center on zero? Specifically, what code?**
-Broke the association between treatment and outcome- sampled treatment without replacement.
+**Q18: What did you do to make the null distribution center on zero? Specifically, what code?** Broke the association between treatment and outcome- sampled treatment without replacement.
 
-**Q19: What did you do to make the bootstrap distribution center on the observed test statistic? Specifically, what code?**
-Retained association between treatment and outcome- grouped by treatment, then sampled with replacement.
+**Q19: What did you do to make the bootstrap distribution center on the observed test statistic? Specifically, what code?** Retained association between treatment and outcome- grouped by treatment, then sampled with replacement.
 
-**Q20: What would happen to your bootstrap distribution if you sampled without replacement?**
-Sampling without replacement is just shuffling. Since we sampled within treatments, the bootstrap samples would always match the observed sample. So there would be no variation in the bootstrap distribution of the test stat.
+**Q20: What would happen to your bootstrap distribution if you sampled without replacement?** Sampling without replacement is just shuffling. Since we sampled within treatments, the bootstrap samples would always match the observed sample. So there would be no variation in the bootstrap distribution of the test stat.

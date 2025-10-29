@@ -317,13 +317,107 @@ The `restoration` data frame contains data about the eelgrass shoot density of t
 
 $$
 SE(\bar x) = \frac{s}{\sqrt{n}}
-$$
+$$\
 
+```{r}
+# Get mean/test stat
+xbar = mean(restoration$shoot_density_m2)
+
+# Calculate the SE for the CI
+se_xbar <- sd(restoration$shoot_density_m2) / sqrt(nrow(restoration))
+
+# Calculate the CI for each sample- note mean (centered at mean shoot density) and sd
+xbar_ci <- qnorm(c(0.025, 0.975), mean = xbar, sd = se_xbar)
+xbar_ci
+
+```
+
+1.  We are 95% confident that the true mean shoot density following restoration falls between 78.8 and 95.2.
 2.  Estimate the p-value of the difference in mean shoot density between the two restoration methods. Use a mathematical model. Recall the standard error of a difference in means, under the null hypothesis, is:
 
 $$
 SE(\bar{x_2}-\bar{x_1}) = \sqrt{\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2}}
 $$
 
+```{r}
+# xbar is the POOLED proportion
+# Means of each treatment
+xbar1 <- mean(restoration$shoot_density_m2[restoration$treatment == "Garden staple"])
+xbar2 <- mean(restoration$shoot_density_m2[restoration$treatment == "Popsicle stick"])
+
+# sd of each treatment
+s1 <- sd(restoration$shoot_density_m2[restoration$treatment == "Garden staple"])
+s2 <- sd(restoration$shoot_density_m2[restoration$treatment == "Popsicle stick"])
+
+# n's are the number of observations in each treatment
+# n1: number of garden staple observations
+# n2: number of popsicle stick observations
+n1 <- sum(restoration$treatment == "Garden staple")
+n2 <- sum(restoration$treatment == "Popsicle stick")
+
+# Based on equation, calculate the standard error of the sample statistic, based on the pooled proportion xbar
+se_xdiff <- sqrt((s1^2 / n1) + (s2^2 / n2))
+
+# difference in means 
+diff_mean <- xbar2 - xbar1
+
+# Statistic, curve description, and tail
+p_val <- 2 * (pnorm(diff_mean, mean = 0, sd = se_xdiff, lower.tail = FALSE))
+p_val
+```
+
+2.   The p value of 0.002 is less than the critical threshold, so we reject the null hypothesis of no difference. Our data are consistent with the hypothesis that there is a difference in mean shoot density post-restoration between methods.
+
 3.  Repeat constructing the 95% CI of mean shoot density following restoration, but use bootstrapping instead of a mathematical model.
-4.  Repeat estimating the p-value of the difference in mean shoot density between the two restoration methods, but use a permutation test instead of a mathematical model.
+
+    ```{r}
+    bootstrap <- function(i) {
+      one_bootstrap <- restoration %>% 
+        mutate(shoot_dens = sample(shoot_density_m2,
+                          size = length(shoot_density_m2),
+                          replace = TRUE)) %>% 
+        mutate(trial = i)
+    }
+
+    bootstrap_samples <- map(1:1000, bootstrap) %>% 
+      list_rbind()
+
+    # Calculate mean of each trial, ignoring treatment
+    boot_means <- bootstrap_samples %>% 
+      group_by(trial) %>% 
+      summarize(mean_shoot_density = mean(shoot_dens))
+
+    restoration_ci <- quantile(boot_means$mean_shoot_density, c(0.025, 0.975))
+    restoration_ci
+    ```
+
+4.  We are 95% confident that the true mean shoot density following restoration falls between 79.01 and 95.01.
+
+5.  Repeat estimating the p-value of the difference in mean shoot density between the two restoration methods, but use a permutation test instead of a mathematical model.
+
+    ```{r}
+    permute <- function(i) {
+      one_permutation <- restoration %>% 
+      mutate(treatment = sample(treatment, 
+                          size = length(treatment), 
+                          replace = FALSE))
+
+    permutation_means <- one_permutation %>% 
+      group_by(treatment) %>% 
+      summarize(mean_shoot = mean(shoot_density_m2))
+
+    permutation_diff_means <- permutation_means$mean_shoot[2] - permutation_means$mean_shoot[1]
+
+    permutation_diff_means
+    }
+
+    # Map receives a function that it can apply to the numbers 1:1000- run permutation 1000 times and get back all resulting differences in proportions
+    null_distribution <- map_dbl(1:1000, permute)
+
+    # Calculate proportion of where the null distribution value is greater than the obs test stat via mean of true/false values
+    p_val <- mean(abs(null_distribution) >=  abs(diff_mean))
+
+    p_val
+    ```
+
+5. The p value of 0.002 is less than the critical threshold, so we reject the null hypothesis of no difference. Our data are consistent with the hypothesis that there is a difference in mean shoot density post-restoration between methods.
