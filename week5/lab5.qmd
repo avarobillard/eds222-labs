@@ -366,7 +366,7 @@ p_val <- 2 * (pnorm(diff_mean, mean = 0, sd = se_xdiff, lower.tail = FALSE))
 p_val
 ```
 
-2.   The p value of 0.002 is less than the critical threshold, so we reject the null hypothesis of no difference. Our data are consistent with the hypothesis that there is a difference in mean shoot density post-restoration between methods.
+2.  The p value of 0.002 is less than the critical threshold, so we reject the null hypothesis of no difference. Our data are consistent with the hypothesis that there is a difference in mean shoot density post-restoration between methods.
 
 3.  Repeat constructing the 95% CI of mean shoot density following restoration, but use bootstrapping instead of a mathematical model.
 
@@ -420,4 +420,4 @@ p_val
     p_val
     ```
 
-5. The p value of 0.002 is less than the critical threshold, so we reject the null hypothesis of no difference. Our data are consistent with the hypothesis that there is a difference in mean shoot density post-restoration between methods.
+6.  The p value of 0.002 is less than the critical threshold, so we reject the null hypothesis of no difference. Our data are consistent with the hypothesis that there is a difference in mean shoot density post-restoration between methods.
