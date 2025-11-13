@@ -82,7 +82,7 @@ drinking_water <- read_csv(here::here('week7/drinking_water.csv'))
 | `pwsname`           | name of public water system        |
 | `pctpov`            | percent poverty                    |
 | `pcthisp`           | percent hispanic                   |
-| `health`            | health rating                      |
+| `health`            | count of health violations         |
 | `medianincomehouse` | median household income            |
 | `violation`         | violation? (TRUE/FALSE)            |
 | `pcthisp_bin`       | bin for percent hispanic           |
@@ -137,19 +137,40 @@ Let's begin by investigating class in isolation. **Fit a logistic model to see h
 ```{r}
 #| label: fit-model-class
 
-
-
+class_model <- glm(violation ~ pctpov, # formula: response ~ predictor)
+                   data = drinking_water, # data 
+                   family = binomial(link = "logit")) # family and link function
 ```
 
 Just as we did with linear regression, you can inspect coefficient estimates, p-values, and confidence intervals using `summary()` and `confint()`.
 
 **What is the best estimate for the % Below Poverty coefficient?**
 
+```{r}
+coef(class_model)["pctpov"]
+```
+
+0.017
+
 **Is the coefficient significantly different than 0? Assume critical threshold of 0.05.**
+
+```{r}
+summary(class_model)$coefficients["pctpov", 4]
+```
+
+yes
 
 **What is the 95% CI for the coefficient?**
 
+```{r}
+confint(class_model)["pctpov",]
+```
+
+0.01400774 0.01993638
+
 **Based on the sign, what is the relationship between class and SDWA violations?**
+
+as % below poverty increases so do SDWA violations- sign is positive so a positive association
 
 ## Make predictions
 
@@ -174,14 +195,23 @@ I use `expand_grid()` instead of `tibble()` when making the data frame of predic
 ```{r}
 #| label: predict-class-model
 
+# A grid of predictors to generate predictors for
+pred_grid <- expand_grid(pctpov = 0:100)
 
+# Generate our predictions- response undoes logit
+class_model_pred <- pred_grid %>% 
+  mutate(p = predict(object = class_model,
+                     newdata = pred_grid,
+                     type = "response"))
 
 ```
 
 ```{r}
 #| label: plot-class-best-estimate
 
-
+ggplot(class_model_pred, aes(x = pctpov, y = p)) +
+  geom_line() +
+  ylim(0,1)
 
 ```
 
@@ -198,7 +228,27 @@ When constructing the 95% CI for $p$, one thing remains the same and one thing h
 ```{r}
 #| label: predict-class-model-ci
 
+class_model_se <- predict(object = class_model,
+                          newdata = pred_grid,
+                          type = "link", # stay in link space!
+                          se.fit = TRUE) # get the se of the fit
 
+# Go from link space to response space
+linkinv <- family(class_model)$linkinv
+
+class_model_pred <- pred_grid %>% 
+  mutate(
+    # get logit(p)
+    logit_p = class_model_se$fit,
+    # 95% CI in link space- keeps in realistic range of values!! can do math here
+    logit_p_se = class_model_se$se.fit,
+    logit_p_lwr = qnorm(0.025, mean = logit_p, sd = logit_p_se),
+    logit_p_upr = qnorm(0.975, mean = logit_p, sd = logit_p_se),
+    # undo the link function using linkinv- can interpret here
+    p = linkinv(logit_p),
+    p_lwr = linkinv(logit_p_lwr),
+    p_upr = linkinv(logit_p_upr)
+  )
 
 ```
 
@@ -207,7 +257,9 @@ And here's the fit with the 95% CI presented as the familiar ribbon.
 ```{r}
 #| label: plot-class-ci
 
-
+ggplot(class_model_pred, aes(x = pctpov, y = p))+
+  geom_ribbon(aes(ymin = p_lwr, ymax = p_upr), alpha = 0.2) +
+  geom_line()
 
 ```
 
@@ -235,10 +287,74 @@ Switzer and Teodoro demonstrated that the *interaction* between race and class i
 ```{r}
 #| label: your-turn
 
+# Model with interaction term
+class_model_int <- glm(violation ~ pctpov*pcthisp, # formula: response ~ predictor)
+                   data = drinking_water, # data 
+                   family = binomial(link = "logit")) # family and link function
+```
 
+```{r}
+# 95% CI for % Hispanic coefficient
+confint(class_model_int)["pcthisp",]
+summary(class_model_int)
+```
 
+-0.009529405 -0.001782473
+
+The interaction does not seem to be significantly different than 0. (3.246e-04)
+
+```{r}
+# A grid of predictors to generate predictors for
+pred_grid_2 <- expand_grid(pctpov = 0:100,
+                           pcthisp = 0:100)
+
+# Generate our predictions- response undoes logit
+class_model_pred <- pred_grid_2 %>% 
+  mutate(p = predict(object = class_model_int,
+                     newdata = pred_grid_2,
+                     type = "response"))
+```
+
+```{r}
+class_model_int_se <- predict(object = class_model_int,
+                          newdata = pred_grid_2,
+                          type = "link", # stay in link space!
+                          se.fit = TRUE) # get the se of the fit
+
+# Go from link space to response space
+linkinv <- family(class_model_int)$linkinv
+
+class_model_predint <- pred_grid_2 %>% 
+  mutate(
+    # get logit(p)
+    logit_p = class_model_int_se$fit,
+    # 95% CI in link space- keeps in realistic range of values!! can do math here
+    logit_p_se = class_model_int_se$se.fit,
+    logit_p_lwr = qnorm(0.025, mean = logit_p, sd = logit_p_se),
+    logit_p_upr = qnorm(0.975, mean = logit_p, sd = logit_p_se),
+    # undo the link function using linkinv- can interpret here
+    p = linkinv(logit_p),
+    p_lwr = linkinv(logit_p_lwr),
+    p_upr = linkinv(logit_p_upr)
+  )
+
+# filter predictions to a few levels
+class_model_predint_filtered <- class_model_predint %>%
+  filter(pctpov %in% c(0, 25, 50, 75)) %>%
+  mutate(pctpov = factor(pctpov))
+
+# plot filtered predictions, colored by pctpov
+ggplot(class_model_predint_filtered, aes(x = pcthisp, y = p, fill = pctpov))+
+  geom_ribbon(aes(ymin = p_lwr, ymax = p_upr), alpha = 0.2) +
+  geom_line()
+```
+
+```{r}
+summary(class_model_pred_int)
 ```
 
 The coefficient for an interaction term in a logistic regression model is very difficult to interpret on its own! But that value has important consequences for the lives of millions of people. Predictions are usually more straightforward to interpret than coefficients. Use your figure and the outputs of `summary()` and `confint()` to reflect on the following prompt. Reply to the corresponding thread on Slack with your reflection to get 1 token.
 
 **In plain language, what is the relationship between race, class, and SDWA violations? Which communities face the greatest risks associated with drinking water? How would you use the statistical outputs (model summary, prediction figure) to describe that risk quantitatively? How could those statistical outputs be misinterpreted?**
+
+SDWA violations depend on both the percent Hispanic and percent poverty in the district. Quantitatively based upon the prediction figure, the relationship between the probability of an SDWA violation and percent Hispanic in the district depends upon the percent poverty. The confidence interval for when percent poverty is at the highest level (75) is widest and most positive while the CI for when percent poverty is at the lowest level (0) it the narrowest and most negative. Based upon the model summary, the CI for the coefficient of percent Hispanic was very close to 0. The interaction term between percent poverty and percent Hispanic was also not significantly different than 0. These statistical outputs could be misinterpreted because the overall effect of percent Hispanic on violations matters but varies in sign based upon the percent poverty, which might cause the effects to cancel out when one variable is not considered even though there is a relationship as shown in the prediction figure.
