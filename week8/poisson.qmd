@@ -1,0 +1,29 @@
+---
+title: "poisson"
+format: html
+---
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+# Create every combination of x-values and lambda values
+pmf_data <- expand_grid(x = 0:10, lambda = c(0.5, 2, 5)) %>% 
+  mutate(pmf = dpois(x, lambda)) # Compute PMF for each combination using dpois()
+
+# Plot
+pmf_plots <- ggplot(pmf_data, aes(x=x, y=pmf)) +
+  geom_segment(aes(x=x, y= pmf, xend = x, yend = 0)) +
+  geom_point(shape = 21, size = 1.5)+
+  facet_wrap(~lambda, ncol = 1) + 
+  labs(
+    title = "PMFs for three Poisson random variables",
+    x = "X",
+    y = "Mass"
+  ) 
+
+pmf_plots
+```
+likelihood of each possible integer count of events
+lambda = 0.5- 60% chance of 0 events, 30% chance of one event in time period
